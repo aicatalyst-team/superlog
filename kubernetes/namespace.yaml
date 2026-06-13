@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: poc-superlog
+  labels:
+    app.kubernetes.io/name: superlog
+    app.kubernetes.io/managed-by: autopoc

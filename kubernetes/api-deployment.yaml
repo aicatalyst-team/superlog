@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superlog-api
+  namespace: poc-superlog
+  labels:
+    app: superlog-api
+    autopoc.io/project: superlog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: superlog-api
+  template:
+    metadata:
+      labels:
+        app: superlog-api
+    spec:
+      containers:
+        - name: superlog-api
+          image: quay.io/aicatalyst/superlog-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4100
+          env:
+            - name: PORT
+              value: "4100"
+            - name: DATABASE_URL
+              value: "postgres://postgres:postgres@postgres:5432/superlog"
+            - name: CLICKHOUSE_URL
+              value: "http://clickhouse:8123"
+            - name: CLICKHOUSE_DB
+              value: "superlog"
+            - name: BETTER_AUTH_SECRET
+              value: "autopoc-test-secret-32bytes-long-xx"
+            - name: BETTER_AUTH_URL
+              value: "http://superlog-api:4100"
+            - name: WEB_ORIGIN
+              value: "http://superlog-web:8080"
+            - name: STATE_SIGNING_SECRET
+              value: "autopoc-state-signing-secret-32b"
+            - name: NODE_ENV
+              value: "production"
+            - name: RUN_MIGRATIONS_ON_BOOT
+              value: "true"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /api/auth/ok
+              port: 4100
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /api/auth/ok
+              port: 4100
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: superlog-api
+  namespace: poc-superlog
+  labels:
+    app: superlog-api
+    autopoc.io/project: superlog
+spec:
+  type: ClusterIP
+  selector:
+    app: superlog-api
+  ports:
+    - port: 4100
+      targetPort: 4100
