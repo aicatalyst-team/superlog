@@ -6,10 +6,9 @@ FROM registry.access.redhat.com/ubi9/nodejs-22
 
 WORKDIR /opt/app-root/src
 
-# Install pnpm globally (corepack not available in UBI Node.js images)
+# Install pnpm globally and fix directory permissions for pnpm install
 USER 0
 RUN npm install -g pnpm@9.12.0
-USER 1001
 
 # Copy workspace root files for pnpm install
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -18,6 +17,10 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/db/package.json packages/db/
 COPY packages/fingerprint/package.json packages/fingerprint/
+
+# Fix ownership so user 1001 can create node_modules in subdirectories
+RUN chown -R 1001:0 /opt/app-root/src
+USER 1001
 
 # Install dependencies (frozen lockfile for reproducibility)
 RUN pnpm install --frozen-lockfile --filter @superlog/api...
